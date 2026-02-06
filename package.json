@@ -1,0 +1,39 @@
+{
+	"name": "companion-module-synq-dbt44",
+	"version": "1.0.0",
+	"description": "Companion module for Synq DBT-44",
+	"author": "Daniel Vegter",
+	"license": "MIT",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier -w .",
+		"build": "yarn companion-module-build --dev",
+		"package": "prettier -w . && yarn companion-module-build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-synq-dbt44.git"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"keywords": [
+		"companion",
+		"bitfocus",
+		"module",
+		"Synq",
+		"dbt-44",
+		"audio",
+		"dante"
+	],
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"dependencies": {
+		"@companion-module/base": "1.13.6",
+		"osc": "^2.4.5",
+		"prettier": "^3.7.4"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^2.6.0"
+	}
+}
