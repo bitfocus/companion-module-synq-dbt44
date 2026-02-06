@@ -1,0 +1,21 @@
+{
+	"id": "synq-dbt44",
+	"name": "Synq DBT-44",
+	"shortname": "dbt44",
+	"description": "Control Synq DBT-44 Dante audio bridge via OSC (mute, gain)",
+	"version": "1.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-synq-dbt44.git",
+	"bugs": "https://github.com/bitfocus/companion-module-synq-dbt44/issues",
+	"maintainers": [],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node22",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../index.js"
+	},
+	"manufacturer": "Synq",
+	"products": ["DBT-44"],
+	"keywords": ["audio", "dante", "osc", "synq"]
+}
