@@ -1,6 +1,6 @@
 {
 	"name": "companion-module-synq-dbt44",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"license": "MIT",
 	"main": "src/main.js",
 	"scripts": {
