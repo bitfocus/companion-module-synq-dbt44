@@ -4,6 +4,7 @@ const dns = require('dns')
 const osc = require('osc')
 
 const UpgradeScripts = require('./upgrades')
+const UpdatePresets = require('./presets')
 const UpdateActions = require('./actions')
 const UpdateFeedbacks = require('./feedbacks')
 const UpdateVariables = require('./variables')
@@ -19,7 +20,8 @@ const UpdateVariables = require('./variables')
  */
 const OSC_PATH_PING = '/ping'
 const OSC_PATH_SYNC = '/sync'
-const SYNC_INTERVAL_MS = 60000 // gentle interval to avoid overloading
+/** Periodic ping to confirm device is reachable (OSC echo). */
+const PING_INTERVAL_MS = 30000
 
 /** DBT-44: 8 inputs (1–4 Analog, 5–8 Dante), 8 outputs (1–4 Analog, 5–8 Dante) */
 const NUM_INPUTS = 8
@@ -31,7 +33,6 @@ class SynqDbt44Instance extends InstanceBase {
 		this.receiveBuffer = Buffer.alloc(0)
 		this.syncState = {}
 		this.syncVariableDefs = []
-		this.syncTimer = null
 		/** Saved gain per matrix point (input_output) when muted to -120, for restore on toggle */
 		this.savedMatrixGain = {}
 	}
@@ -51,13 +52,13 @@ class SynqDbt44Instance extends InstanceBase {
 		this.pingTimer = null
 
 		if (!this.config.host || !this.config.targetPort || !this.config.feedbackPort) {
-			this.log('warn', 'Host, target port and feedback port are required')
+			this.log('error', 'Host, target port and feedback port are required')
 			this.updateStatus('bad_config')
 			this.setupEmptyActionsVariables()
 			return
 		}
 		if (!(this.config.device_name || '').trim()) {
-			this.log('warn', 'Device name is required (see DBT-44 web interface or SYNQ Network Discovery Tool)')
+			this.log('error', 'Device name is required (see DBT-44 web interface or SYNQ Network Discovery Tool)')
 			this.updateStatus('bad_config')
 			this.setupEmptyActionsVariables()
 			return
@@ -95,7 +96,7 @@ class SynqDbt44Instance extends InstanceBase {
 		this.receiveBuffer = Buffer.alloc(0)
 
 		this.socket.on('error', (err) => {
-			this.log('warn', `Socket error: ${err.message}`)
+			this.log('error', `Socket error: ${err.message}`)
 			this.updateStatus('connection_failure')
 		})
 
@@ -114,6 +115,8 @@ class SynqDbt44Instance extends InstanceBase {
 			this.setVariableValues({ device_name: (this.config.device_name || '').trim() })
 			this.updateStatus('ok', (this.config.device_name || '').trim() || 'Ready')
 			setTimeout(() => this.sendSync(), 1000)
+			if (this.pingTimer) clearInterval(this.pingTimer)
+			this.pingTimer = setInterval(() => this.sendPing(), PING_INTERVAL_MS)
 		})
 	}
 
@@ -235,7 +238,7 @@ class SynqDbt44Instance extends InstanceBase {
 			this.setVariableDefinitions(defs)
 			this.setVariableValues({ device_name: deviceName, ...this.syncState })
 		} catch (err) {
-			this.log('warn', `applySyncVariables error: ${err.message}`)
+			this.log('error', `applySyncVariables error: ${err.message}`)
 		}
 	}
 
@@ -245,11 +248,11 @@ class SynqDbt44Instance extends InstanceBase {
 		try {
 			const msg = osc.writePacket({ address: path, args: [] }, { metadata: true })
 			this.socket.send(msg, 0, msg.length, this.config.targetPort, this.targetHost, (err) => {
-				if (err) this.log('warn', `Sync send error: ${err.message}`)
+				if (err) this.log('error', `Sync send error: ${err.message}`)
 				else this.log('debug', `Sent ${path}`)
 			})
 		} catch (err) {
-			this.log('warn', `Failed to send sync: ${err.message}`)
+			this.log('error', `Failed to send sync: ${err.message}`)
 		}
 	}
 
@@ -328,7 +331,10 @@ class SynqDbt44Instance extends InstanceBase {
 				this.log('debug', `OSC unparsed (${message.length} bytes): ${message.toString('hex')}`)
 			}
 		}
-		if (hadSyncMessage) this.applySyncVariables()
+		if (hadSyncMessage) {
+			this.applySyncVariables()
+			this.checkFeedbacks('input_muted', 'output_muted', 'matrix_point_muted')
+		}
 	}
 
 	handleOscMessage(packet) {
@@ -357,10 +363,8 @@ class SynqDbt44Instance extends InstanceBase {
 							: args[0].value
 					: ''
 			this.storeSyncValue(variableId, value)
-			this.checkFeedbacks()
 			return true
 		}
-		this.checkFeedbacks()
 		return false
 	}
 
@@ -370,11 +374,11 @@ class SynqDbt44Instance extends InstanceBase {
 		try {
 			const msg = osc.writePacket({ address: path, args: [] }, { metadata: true })
 			this.socket.send(msg, 0, msg.length, this.config.targetPort, this.targetHost, (err) => {
-				if (err) this.log('warn', `Send error: ${err.message}`)
+				if (err) this.log('error', `Ping send error: ${err.message}`)
 				else this.log('debug', `Sent ${path}`)
 			})
 		} catch (err) {
-			this.log('warn', `Failed to send ping: ${err.message}`)
+			this.log('error', `Failed to send ping: ${err.message}`)
 		}
 	}
 
@@ -388,10 +392,6 @@ class SynqDbt44Instance extends InstanceBase {
 		if (this.pingTimer) {
 			clearInterval(this.pingTimer)
 			this.pingTimer = null
-		}
-		if (this.syncTimer) {
-			clearInterval(this.syncTimer)
-			this.syncTimer = null
 		}
 		if (this.socket) {
 			try {
@@ -413,10 +413,6 @@ class SynqDbt44Instance extends InstanceBase {
 		if (this.pingTimer) {
 			clearInterval(this.pingTimer)
 			this.pingTimer = null
-		}
-		if (this.syncTimer) {
-			clearInterval(this.syncTimer)
-			this.syncTimer = null
 		}
 		this.syncState = {}
 		this.syncVariableDefs = []
@@ -490,6 +486,7 @@ class SynqDbt44Instance extends InstanceBase {
 	}
 
 	updateActions() {
+		UpdatePresets(this)
 		UpdateActions(this)
 	}
 

@@ -15,53 +15,6 @@ module.exports = function (self) {
 		return { id: n, label: `${type} ${num}` }
 	})
 
-	const getPresetDefinitions = () => {
-		const presets = {}
-		const instanceId = self.id || 'instance'
-		for (let outNum = 1; outNum <= NUM_OUTPUTS; outNum++) {
-			const category = `Out ${outNum}`
-			for (let inNum = 1; inNum <= NUM_INPUTS; inNum++) {
-				const id = `matrix_mute_in${inNum}_out${outNum}`
-				const varId = `gain_input_${inNum}_${outNum}`
-				presets[id] = {
-					type: 'button',
-					category,
-					name: `In ${inNum}`,
-					style: {
-						text: `In ${inNum}\n$(${instanceId}:${varId})`,
-						size: '18',
-						color: 0xffffff,
-						bgcolor: 0x000000,
-					},
-					feedbacks: [
-						{
-							feedbackId: 'matrix_point_muted',
-							options: { input: inNum, output: outNum },
-							style: {
-								bgcolor: 0xff0000,
-								text: `In ${inNum}\nMUTE`,
-								color: 0xffffff,
-							},
-						},
-					],
-					steps: [
-						{
-							down: [
-								{
-									actionId: 'matrix_point_mute_toggle',
-									options: { input: inNum, output: outNum },
-								},
-							],
-							up: [],
-						},
-					],
-				}
-			}
-		}
-		return presets
-	}
-
-	self.setPresetDefinitions(getPresetDefinitions())
 	self.setActionDefinitions({
 		refresh_sync: {
 			name: 'Refresh sync (get all settings from device)',
@@ -95,7 +48,7 @@ module.exports = function (self) {
 				const key = `gain_input_${inIdx}_${outIdx}`
 				self.storeSyncValue(key, value)
 				self.applySyncVariables()
-				self.checkFeedbacks()
+				self.checkFeedbacks('matrix_point_muted')
 			},
 		},
 		set_output_gain: {
@@ -121,7 +74,6 @@ module.exports = function (self) {
 				const key = `gain_output_${outIdx}`
 				self.storeSyncValue(key, value)
 				self.applySyncVariables()
-				self.checkFeedbacks()
 			},
 		},
 		step_input_gain: {
@@ -164,7 +116,7 @@ module.exports = function (self) {
 				self.sendOsc(path, [{ type: 'f', value }])
 				self.storeSyncValue(key, value)
 				self.applySyncVariables()
-				self.checkFeedbacks()
+				self.checkFeedbacks('matrix_point_muted')
 			},
 		},
 		step_output_gain: {
@@ -205,7 +157,6 @@ module.exports = function (self) {
 				self.sendOsc(path, [{ type: 'f', value }])
 				self.storeSyncValue(key, value)
 				self.applySyncVariables()
-				self.checkFeedbacks()
 			},
 		},
 		matrix_point_mute_toggle: {
@@ -234,7 +185,7 @@ module.exports = function (self) {
 					self.storeSyncValue(key, -120)
 				}
 				self.applySyncVariables()
-				self.checkFeedbacks()
+				self.checkFeedbacks('matrix_point_muted')
 			},
 		},
 		set_input_mute: {
@@ -266,7 +217,7 @@ module.exports = function (self) {
 				self.sendOsc(path, [mute ? { type: 'T' } : { type: 'F' }])
 				self.storeSyncValue(`mute_input_${inIdx}`, mute ? 1 : 0)
 				self.applySyncVariables()
-				self.checkFeedbacks('input_muted', 'output_muted')
+				self.checkFeedbacks('input_muted')
 			},
 		},
 		set_output_mute: {
@@ -298,7 +249,7 @@ module.exports = function (self) {
 				self.sendOsc(path, [mute ? { type: 'T' } : { type: 'F' }])
 				self.storeSyncValue(`mute_output_${outIdx}`, mute ? 1 : 0)
 				self.applySyncVariables()
-				self.checkFeedbacks('input_muted', 'output_muted')
+				self.checkFeedbacks('output_muted')
 			},
 		},
 	})
