@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-03-28
+
+### Changed
+- Preset definitions moved to `src/presets.js`
+- Periodic OSC ping every 30s while connected (keeps reachability checks meaningful)
+- Actions call `checkFeedbacks` with specific feedback ids; after a device sync batch, only `input_muted`, `output_muted`, and `matrix_point_muted` are refreshed (not every feedback type)
+- Log level `error` for configuration failures, socket errors, sync/ping send failures, and `applySyncVariables` exceptions
+- Manifest `version` set to `0.0.0` (release pipeline overrides from `package.json`); search keywords trimmed to user-facing terms only
+- `.gitignore` aligned with module template (ignore `.yarn/`, `pkg`, tgz, `DEBUG-*`)
+
+### Removed
+- Unused `syncTimer` / periodic sync interval (sync remains on connect and via action)
+- `.yarn` directory must not be committed (see `.gitignore`)
+
+## [1.0.4] - 2026-03-28
+
+### Fixed
+- CI: removed `package-lock.json`; `yarn.lock` kept in sync with Yarn 4 immutable installs
+
+## [1.0.3] - 2026-03-28
+
+### Fixed
+- `package.json` and manifest version fields aligned with git tag for Companion release checks
+
+## [1.0.2] - 2026-03-28
+
+### Fixed
+- Merge and lockfile updates after remote dependency changes
+
+## [1.0.1] - 2026-03-28
+
+### Changed
+- Aligned repository layout with Bitfocus JS module template (`src/` split, Yarn 4, LICENSE, tooling files)
+
 ## [1.0.0] - 2026-02-03
 
 ### Added
